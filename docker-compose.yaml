@@ -1,0 +1,23 @@
+services:
+  todoapp-postgres:
+    image: dhi.io/postgres:18-alpine3.23-dev
+    container_name: todoapp-env-postgres
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    volumes: # тома для хранения данных postgresql на хост-машине, чтобы данные сохранялись при перезапуске контейнера
+      - ${PROJECT_ROOT}\out\pgdata:/var/lib/postgresql # папка на хост-машине : папка внутри контейнера
+    restart: always # политика перезапуска контейнера, чтобы он автоматически перезапускался при сбое или перезагрузке хост-машины
+
+  todoapp-postgres-migrate:
+    image: migrate/migrate:v4.19.1
+    volumes:
+      - ${PROJECT_ROOT}\migrations:/migrations
+  
+  port-forwarder:
+    image: alpine/socat:1.8.1.1
+    container_name: todoapp-postgres-port-forwarder
+    command: tcp-listen:5432,fork,reuseaddr tcp-connect:todoapp-postgres:5432
+    ports:
+      - "127.0.0.1:5432:5432" # доступ будет только от локалхоста
